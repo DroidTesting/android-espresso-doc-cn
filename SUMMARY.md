@@ -9,5 +9,5 @@
 * [Espresso 高级示例](chapter6.md)
 * [Espresso Web](chapter7.md)
 * [AndroidJUnitRunner](chapter8.md)
-* ATSL 中的 JUnit 4 规则
+* ATSL 中的 JUnit4 规则
 
