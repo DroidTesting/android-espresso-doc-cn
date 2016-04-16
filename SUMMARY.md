@@ -10,5 +10,5 @@
 * [Espresso Web](chapter7.md)
 * [AndroidJUnitRunner](chapter8.md)
 * [ATSL 中的 JUnit4 规则](chapter9.md)
-* UI Automator
+* [UI Automator](chapter10.md)
 
