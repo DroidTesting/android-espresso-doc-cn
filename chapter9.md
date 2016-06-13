@@ -2,108 +2,56 @@
 
 > **声明：**本系列文章是对 [Android Testing Support Library](https://google.github.io/android-testing-support-library/docs/espresso/index.html)官方文档的翻译，水平有限，欢迎批评指正。
 
-> [下载 Espresso-Web](https://google.github.io/android-testing-support-library/docs/espresso/web/index.html#download-espresso-web)
+我们在 Android 测试支持库中提供了一套供 `AndroidJUnitRunner` 使用的 JUnit 规则。JUnit 规则提供了更多的灵活性，并且减少了测试需要的样板代码。
 
-Espresso-web 是测试 Android 上 WebView 的切入点。它使用流行的 WebDriver API 原子内省并控制 WebView 的行为。
+​为了拥抱 `ActivityTestRule` 和 `ServiceTestRule`​，我们不再使用 `​​ActivityInstruentationTestCase2`​ 和 `ServiceTestCase` 类型的 `TestCase` 。
 
-与 onData 类似，WebView 的交互实际上是几个视图原子的组合。一个原子可以被看作一个 ViewAction，一个在 UI 上执行操作的自包含单元。然而，它们需要适当的精心策划并且十分啰嗦。Web 和 WebInteraction 对此样本进行了包装，提供了 Espresso 风格的 WebView 交互体验。
+ActivityTestRule
+----------------
 
-WebView 经常在 Java/JavaScript 之间跨界工作，由于没有机会将 JavaScript 中的数据引入到竞态机制(Espresso 得到的所有 Java 端的数据都一个独立的副本)，WebInteractions 全面支持数据的返回。
-
-常规 WebInteractions
-------------------
-
-* `​withElement(ElementReference)`​ 将把 `​ElementReference`​ 提交到原子中，示例如下：
+此规则提供了针对单个 activity 的功能测试。待测 activity 将在每个带 `@Test` 注解的测试和每个带 `​@Before`​ 注解的方法执行前被启动。它将在测试结束并且所有带 `​@After`​ 注解的方法执行完后被销毁。待测 activity 在测试期间可以通过调用 `​ActivityTestRule#getActivity`​ 访问。
 
 ```java
-onWebView().withElement(findElement(Locator.ID, "teacher"))
-```
+@RunWith(AndroidJUnit4.class)
+@LargeTest
+public class MyClassTest {
 
-* `withContextualElement(Atom<ElementReference>)` 将把 ElementReference 提交到原子钟，示例如下：
+    @Rule
+    public ActivityTestRule<MyClass> mActivityRule = new ActivityTestRule(MyClass.class);
 
-```java
-onWebView()
-  .withElement(findElement(Locator.ID, "teacher"))
-  .withContextualElement(findElement(Locator.ID, "person_name"))
-```
-
-* `​check(WebAssertion)`​ 将会检查断言的真假性。示例如下：
-
-```java
-onWebView()
-  .withElement(findElement(Locator.ID, "teacher"))
-  .withContextualElement(findElement(Locator.ID, "person_name"))
-  .check(webMatches(getText(), containsString("Socrates")));
-```
-
-* `​perform(Atom)`​ 将在当前的上下文中执行提供的原子操作，示例如下：
-
-```java
-onWebView()
-  .withElement(findElement(Locator.ID, "teacher"))
-  .perform(webClick());
-```
-
-* 当之前的操作（如点击）改变了界面导航，从而使 ElementReference 和 WindowReference 点失效时，必须使用 `​reset()`​。
-
-WebView 示例
-----------
-
-Espresso web 需要启用 JavaScript 来控制 WebView。你可以通过覆写 ActivityTestRule 类中的 afterActivityLaunched 方法强制启用它。
-
-```java
-@Rule
-public ActivityTestRule<WebViewActivity> mActivityRule = new ActivityTestRule<WebViewActivity>(WebViewActivity.class, false, false) {
-    @Override
-    protected void afterActivityLaunched() {
-        // Enable JS!
-        onWebView().forceJavascriptEnabled();
-    }
-}
-
-@Test
-public void typeTextInInput_clickButton_SubmitsForm() {
-   // Lazily launch the Activity with a custom start Intent per test
-   mActivityRule.launchActivity(withWebFormIntent());
-
-   // Selects the WebView in your layout. If you have multiple WebViews you can also use a
-   // matcher to select a given WebView, onWebView(withId(R.id.web_view)).
-   onWebView()
-       // Find the input element by ID
-       .withElement(findElement(Locator.ID, "text_input"))
-       // Clear previous input
-       .perform(clearElement())
-       // Enter text into the input element
-       .perform(DriverAtoms.webKeys(MACCHIATO))
-       // Find the submit button
-       .withElement(findElement(Locator.ID, "submitBtn"))
-       // Simulate a click via javascript
-       .perform(webClick())
-       // Find the response element by ID
-       .withElement(findElement(Locator.ID, "response"))
-       // Verify that the response page contains the entered text
-       .check(webMatches(getText(), containsString(MACCHIATO)));
+    @Test
+    public void myClassMethod_ReturnsTrue() { ... }
 }
 ```
 
-在 GitHub 上查看 [Espresso Web sample](https://github.com/googlesamples/android-testing/tree/master/ui/espresso/WebBasicSample)。
-
-下载 Espresso-Web
+ServiceTestRule
 ---------------
 
-* 确保你已经安装了 *Android Support Repository*（查看[说明](https://google.github.io/android-testing-support-library/downloads/index.html)）
-* 打开应用的 `​build.gradle`​ 文件。它通常不是顶级 `​build.gradle`​，而是​`​app/build.gradle`​。
+此规则提供了在测试前后启动和终止服务的简单机制。它也会保证当启动（或绑定）一个服务时，该服务被成功的连接。服务可以使用它的一个帮助方法来启动（或绑定)。它将在测试结束并且所有带 `​@After`​ 注解的方法执行完后自动被停止（或解绑）。
 
-在 dependencies 中添加以下行：
-
-```java
-androidTestCompile 'com.android.support.test.espresso:espresso-web:2.2.2'
-```
-
-Espresso-Web 只兼容 Espresso 2.2+ 和 testing supprot library 0.3+，所以你也要更新如下行：
+注意：此规则不适用于 `​IntentService`​，因为它会在 `​IntentService#onHandleIntent(android.content.Intent)`​ 结束了所有外发指令时自动销毁。所以无法保证及时建立一个成功的连接。
 
 ```java
-androidTestCompile 'com.android.support.test:runner:0.5'
-androidTestCompile 'com.android.support.test:rules:0.5'
-androidTestCompile 'com.android.support.test.espresso:espresso-core:2.2.2'
+@RunWith(AndroidJUnit4.class)
+@MediumTest
+public class MyServiceTest {
+
+    @Rule
+    public final ServiceTestRule mServiceRule = new ServiceTestRule();
+
+    @Test
+    public void testWithStartedService() {
+        mServiceRule.startService(
+            new Intent(InstrumentationRegistry.getTargetContext(), MyService.class));
+        // test code
+    }
+
+    @Test
+    public void testWithBoundService() {
+        IBinder binder = mServiceRule.bindService(
+            new Intent(InstrumentationRegistry.getTargetContext(), MyService.class));
+        MyService service = ((MyService.LocalBinder) binder).getService();
+        assertTrue("True wasn't returned", service.doSomethingToReturnTrue());
+    }
+}
 ```
